@@ -64,13 +64,13 @@ fun HomeScreen(uiState: HomeUiState, modifier: Modifier = Modifier) {
     modifier = modifier
   ) { innerPadding ->
     Column(modifier = Modifier.padding(innerPadding)) {
-      Row(modifier = Modifier.padding(innerPadding)) {
+      Row {
         ConnectStatusBar(
-          uiState.connectedEndpoints.map { it.endpoint },
+          uiState.connectedEndpoints,
           uiState.disconnectedEndpoints
         )
       }
-      Row { RangingPlot(uiState.connectedEndpoints) }
+      Row(modifier = Modifier.padding(innerPadding)) { RangingPlot(uiState.connectedEndpoints) }
     }
   }
 }
@@ -102,7 +102,9 @@ fun HomeTopAppBar(
 
 @Composable
 fun RangingPlot(connectedEndpoints: List<ConnectedEndpoint>) {
-  Canvas(modifier = Modifier.fillMaxSize().background(color = Color.White)) {
+  Canvas(modifier = Modifier
+    .fillMaxSize()
+    .background(color = Color.White)) {
     // Assume the canvas is 20 meters wide.
     val center = Offset(size.width / 2.0f, size.height / 2.0f)
     val scale = drawPolar(center)
@@ -116,7 +118,14 @@ fun RangingPlot(connectedEndpoints: List<ConnectedEndpoint>) {
             centerOffset = center,
             color = ENDPOINT_COLORS[index % ENDPOINT_COLORS.size]
           )
-        }
+        } ?:
+          drawPosition(
+            distance.value,
+            0.0f,
+            scale = scale,
+            centerOffset = center,
+            color = ENDPOINT_COLORS[index % ENDPOINT_COLORS.size]
+          )
       }
     }
   }
@@ -170,26 +179,42 @@ private fun DrawScope.drawPosition(
 
 @Composable
 fun ConnectStatusBar(
-    connectedEndpoints: List<UwbEndpoint>,
+    connectedEndpoints: List<ConnectedEndpoint>,
     disconnectedEndpoints: List<UwbEndpoint>,
     modifier: Modifier = Modifier,
 ) {
-  Box(modifier.height(50.dp)) {
+  Box(modifier.height(( (connectedEndpoints.size + disconnectedEndpoints.size + 2) * 20).dp)) {
     Column {
-      //
-      Row {
-        connectedEndpoints.forEachIndexed { index, endpoint ->
+      Text(modifier = Modifier.width(100.dp),
+        text = "connected")
+      connectedEndpoints.forEachIndexed { index, endpoint ->
+        Row {
           Text(
             modifier = Modifier.width(100.dp),
-            text = endpoint.id.split("|")[0],
+            text = endpoint.endpoint.id.split("|")[0],
+            color = ENDPOINT_COLORS[index % ENDPOINT_COLORS.size]
+          )
+          Text(
+            modifier = Modifier.width(100.dp),
+            text = endpoint.position.distance?.value.toString(),
+            color = ENDPOINT_COLORS[index % ENDPOINT_COLORS.size]
+          )
+          Text(
+            modifier = Modifier.width(100.dp),
+            text = endpoint.position.azimuth?.value.toString(),
+            color = ENDPOINT_COLORS[index % ENDPOINT_COLORS.size]
+          )
+          Text(
+            modifier = Modifier.width(100.dp),
+            text = endpoint.position.elevation?.value.toString(),
             color = ENDPOINT_COLORS[index % ENDPOINT_COLORS.size]
           )
         }
       }
-      Row {
-        disconnectedEndpoints.forEach { endpoint ->
-          Text(modifier = Modifier.width(100.dp), text = endpoint.id, color = Color.DarkGray)
-        }
+      Text(modifier = Modifier.width(100.dp),
+        text = "disconnected")
+      disconnectedEndpoints.forEach { endpoint ->
+        Text(modifier = Modifier.width(100.dp), text = endpoint.id, color = Color.DarkGray)
       }
     }
   }
